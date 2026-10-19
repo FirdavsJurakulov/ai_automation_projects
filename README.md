@@ -16,10 +16,8 @@ Two portfolio demos for an AI Automation Engineer role. Both run **100% free**
 Models used (free tier, Oct 2026): `gemini-3.8-flash` (LLM), `gemini-embedding-2` (embeddings).
 If a model name changes, update it in one place: `.env` / the n8n HTTP node URL.
 
-## Put them on GitHub
+https://github.com/user-attachments/assets/f0bbc7ce-a644-4a43-bbbf-53c1817e4d57
 
-1. New repo `ai-automation-demos` → upload this folder (the `.gitignore` keeps keys out).
-2. Add each demo's screen recording (GIF or MP4) at the top of its README.
-3. Pin the repo on your GitHub profile and add both to your CV under _Selected Projects_:
-   - **AI Lead Qualifier** — n8n workflow: Telegram bot + Gemini structured output + Google Sheets + hot-lead alerts.
-   - **Agency Knowledge Assistant (RAG)** — Python, Gemini embeddings, ChromaDB, Streamlit; grounded answers with citations in RU/UZ/EN.
+
+
+
