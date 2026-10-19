@@ -1,0 +1,16 @@
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    ports:
+      - "5678:5678"
+    environment:
+      - GENERIC_TIMEZONE=Asia/Tashkent
+      - TZ=Asia/Tashkent
+      # Public HTTPS URL from ngrok / cloudflared (Telegram needs HTTPS for webhooks)
+      - WEBHOOK_URL=${WEBHOOK_URL}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - MANAGER_CHAT_ID=${MANAGER_CHAT_ID}
+      # lets the workflow read GEMINI_API_KEY / MANAGER_CHAT_ID via $env
+      - N8N_BLOCK_ENV_ACCESS_IN_NODE=false
+    volumes:
+      - ./n8n_data:/home/node/.n8n

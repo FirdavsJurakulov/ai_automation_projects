@@ -1,0 +1,356 @@
+{
+  "name": "AI Lead Qualifier (Telegram → Gemini → Sheets)",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"],
+        "additionalFields": {}
+      },
+      "id": "5424c7d0-687c-427a-9e80-5af3ea127314",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 128],
+      "webhookId": "4287da0a-ca6f-4504-b4c2-7ac193378bcd",
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_BOT_TOKEN",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-goog-api-key",
+              "value": "GEMINI_AI_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ systemInstruction: { parts: [{ text: \"You are a lead-qualification assistant for a digital marketing agency in Tashkent (services: SMM, targeted ads, branding, websites, video production, AI automation).\\nRead the client's Telegram message and return ONLY JSON with these keys:\\nname (string or null), phone (string or null), service (one of: SMM, Targeting, Branding, Website, Video, AI Automation, Other),\\nbudget_uzs (number or null, convert '$' to UZS at 12,700), urgency (low|medium|high), language (ru|uz|en),\\nlead_score (1-10: higher if budget, clear need, contact and urgency are given), summary (one short sentence in Russian),\\nreply_text (a friendly reply to the client IN THEIR LANGUAGE: thank them, confirm what you understood, and ask for any missing info among name, phone, budget, deadline. Max 3 sentences).\\nNever invent data that is not in the message.\" }] }, contents: [{ role: 'user', parts: [{ text: $json.message.text || '' }] }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json' } }) }}",
+        "options": {}
+      },
+      "id": "ee1251c9-703c-41e5-a7b7-a795730f8cbb",
+      "name": "Gemini: qualify lead",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 128]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Gemini's JSON answer and attach Telegram metadata\nconst tg = $('Telegram Trigger').first().json.message;\nconst raw = $json.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}';\nlet lead;\ntry { lead = JSON.parse(raw); } catch (e) { lead = { summary: 'parse_error', reply_text: 'Спасибо! Менеджер скоро свяжется с вами.', lead_score: 0 }; }\nreturn [{ json: {\n  date: new Date().toISOString(),\n  chat_id: tg.chat.id,\n  username: tg.from.username ? '@' + tg.from.username : '',\n  message: tg.text || '',\n  name: lead.name ?? '',\n  phone: lead.phone ?? '',\n  service: lead.service ?? 'Other',\n  budget_uzs: lead.budget_uzs ?? '',\n  urgency: lead.urgency ?? 'low',\n  language: lead.language ?? 'ru',\n  lead_score: Number(lead.lead_score ?? 0),\n  summary: lead.summary ?? '',\n  reply_text: lead.reply_text ?? ''\n}}];"
+      },
+      "id": "34da95ce-171f-4752-ab72-09b2697c866a",
+      "name": "Parse lead JSON",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 128]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_SHEETS_DOCUMENT_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/GOOGLE_SHEETS_DOCUMENT_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "chat_id",
+              "displayName": "chat_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "username",
+              "displayName": "username",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "phone",
+              "displayName": "phone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "service",
+              "displayName": "service",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "budget_uzs",
+              "displayName": "budget_uzs",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "urgency",
+              "displayName": "urgency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "language",
+              "displayName": "language",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "lead_score",
+              "displayName": "lead_score",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "76e3d886-2754-4618-9745-504b2edc94d9",
+      "name": "Log to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [720, 32],
+      "credentials": {
+        "googleApi": {
+          "id": "gSYLSUqN9Gi1xVzS",
+          "name": "Google Service Account account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Parse lead JSON').item.json.chat_id }}",
+        "text": "={{ $('Parse lead JSON').item.json.reply_text }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "3c75ce5f-0d14-45f1-826b-934e63029859",
+      "name": "Reply to client",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [720, 224],
+      "webhookId": "a02ee353-0fa5-4c51-b76c-023e39fa6fc3",
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_BOT_TOKEN",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "534b12a2-4f6a-4fd3-8f10-d1b5078f0018",
+              "leftValue": "={{ $('Parse lead JSON').item.json.lead_score }}",
+              "rightValue": 7,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "2455cbaf-e8c0-4530-849f-ce2a242146a1",
+      "name": "Hot lead? (score ≥ 7)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [960, 32]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.MANAGER_CHAT_ID }}",
+        "text": "=🔥 Горячий лид ({{ $('Parse lead JSON').item.json.lead_score }}/10)\nУслуга: {{ $('Parse lead JSON').item.json.service }}\nБюджет: {{ $('Parse lead JSON').item.json.budget_uzs }} сум\nКонтакт: {{ $('Parse lead JSON').item.json.name }} {{ $('Parse lead JSON').item.json.phone }} {{ $('Parse lead JSON').item.json.username }}\n{{ $('Parse lead JSON').item.json.summary }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "f7b562ae-466b-40f0-bf88-0fab3fba6c72",
+      "name": "Alert manager",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1200, 0],
+      "webhookId": "b50a7947-cc9a-4503-81dd-c1b2d946437a",
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_BOT_TOKEN",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Gemini: qualify lead",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini: qualify lead": {
+      "main": [
+        [
+          {
+            "node": "Parse lead JSON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse lead JSON": {
+      "main": [
+        [
+          {
+            "node": "Log to Google Sheets",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Reply to client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Hot lead? (score ≥ 7)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hot lead? (score ≥ 7)": {
+      "main": [
+        [
+          {
+            "node": "Alert manager",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "f6143a85-d30a-4a36-a537-6e5d58ed6de7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "1e5546c36f8198b4df376775ffa132763eac3e916e6a52f0390192bc8001796a"
+  },
+  "nodeGroups": [],
+  "id": "bpdWJg8FaZC6aB9C",
+  "tags": []
+}
